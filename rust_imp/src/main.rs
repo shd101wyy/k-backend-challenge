@@ -1,12 +1,15 @@
 #![feature(box_patterns)]
 extern crate immutable_map;
 extern crate slab;
+extern crate typed_arena;
 
 use std::time::{SystemTime};
 
 // mod opt; // I couldn't compile, so I give up it.  
 mod direct;
 mod vec;
+// mod arena;
+mod mutable;
 
 
 fn main() {
