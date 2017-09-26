@@ -62,67 +62,70 @@ fn b_result(a: &KItem)->bool {
 
 #[allow(dead_code)]
 fn step(c: Cfg) -> Result<Cfg, Cfg> {
-    match c {
-        Cfg {k: Cons(AVar(i), rest), state}=> {
+    let k = c.k;
+    let mut state = c.state;
+
+    match k {
+        Cons(AVar(i), rest)=> {
             if i <  state.len() {
                 Ok(Cfg{k: Cons(ACon(state[i]), rest), state: state})
             } else {
                 Err(Cfg{k: Cons(ACon(-1), rest), state})
             }
         },  
-        Cfg {k: Cons(Div(box ACon(i), box ACon(j)), rest), state}=> {
+        Cons(Div(box ACon(i), box ACon(j)), rest)=> {
             if j == 0 {
                 Err(Cfg{k: Cons(Div(Box::new(ACon(i)), Box::new(ACon(j))), rest), state})
             } else {
                 Ok(Cfg{k: Cons(ACon(i / j), rest), state})
             }
         },
-        Cfg {k: Cons(Add(box ACon(i), box ACon(j)), rest), state}=> {
+        Cons(Add(box ACon(i), box ACon(j)), rest)=> {
             Ok(Cfg{k: Cons(ACon(i + j), rest), state})
         },
-        Cfg {k: Cons(Le(box ACon(i), box ACon(j)), rest), state}=> {
+        Cons(Le(box ACon(i), box ACon(j)), rest)=> {
             Ok(Cfg{k: Cons(BCon(i <= j), rest), state})
         },
-        Cfg {k: Cons(Not(box BCon(b)), rest), state}=> {
+        Cons(Not(box BCon(b)), rest)=> {
             Ok(Cfg{k: Cons(BCon(!b), rest), state})
         },
-        Cfg {k: Cons(And(box BCon(true), box b), rest), state}=> {
+        Cons(And(box BCon(true), box b), rest)=> {
             Ok(Cfg{k: Cons(b, rest), state})
         },
-        Cfg {k: Cons(And(box BCon(false), _), rest), state}=> {
+        Cons(And(box BCon(false), _), rest)=> {
             Ok(Cfg{k: Cons(BCon(false), rest), state})
         },
-        Cfg {k: Cons(Assign(i, box ACon(j)), box rest), mut state}=> {
+        Cons(Assign(i, box ACon(j)), box rest)=> {
             state[i] = j;
             Ok(Cfg{k: rest, state: state})
         },
-        Cfg {k: Cons(Seq(box s1, box s2), rest), state}=> {
+        Cons(Seq(box s1, box s2), rest)=> {
             Ok(Cfg{k: Cons(s1, Box::new(Cons(s2, rest))), state})
         },
-        Cfg {k: Cons(Skip, box rest), state}=> {
+        Cons(Skip, box rest)=> {
             Ok(Cfg{k: rest, state})
         },
-        Cfg {k: Cons(If(box BCon(true), box s, _), rest), state}=> {
+        Cons(If(box BCon(true), box s, _), rest)=> {
             Ok(Cfg{k: Cons(s, rest), state})
         },
-        Cfg {k: Cons(If(box BCon(false), _, box s), rest), state}=> {
+        Cons(If(box BCon(false), _, box s), rest)=> {
             Ok(Cfg{k: Cons(s, rest), state})
         },
-        Cfg {k: Cons(While(b, s), rest), state}=> {
+        Cons(While(b, s), rest)=> {
             let s_ = s.clone();
             let b_ = b.clone();
             Ok(Cfg{k: Cons(If(b, Box::new(Seq(s, Box::new(While(b_, s_)))), Box::new(Skip)), rest), state})            
         },
-        Cfg {k: Cons(Pgm(Cons(i, box xs), s), box Nil), mut state}=> {
+        Cons(Pgm(Cons(i, box xs), s), box Nil)=> {
             state[i] = 0;
             Ok(Cfg{k: Cons(Pgm(xs, s), Box::new(Nil)), state: state})
         },
-        Cfg {k: Cons(Pgm(Nil, box s), box Nil), state}=> {
+        Cons(Pgm(Nil, box s), box Nil)=> {
             Ok(Cfg{k: Cons(s, Box::new(Nil)), state})
         },
         // Heading/cooling rules 
         // Heating 
-        Cfg {k: Cons(Div(box e1, box e2), rest), state}=> {
+        Cons(Div(box e1, box e2), rest)=> {
             if !a_result(&e1) {
                 Ok(Cfg{k: Cons(e1, Box::new(Cons(DivL(Box::new(e2)), rest))) , state})
             } else if !a_result(&e2) {
@@ -131,7 +134,7 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
                 Err(Cfg{k: Cons(Div(Box::new(e1), Box::new(e2)), rest), state})
             }
         },
-        Cfg {k: Cons(Add(box e1, box e2), rest), state}=> {
+        Cons(Add(box e1, box e2), rest)=> {
             if !a_result(&e1) {
                 Ok(Cfg{k: Cons(e1, Box::new(Cons(AddL(Box::new(e2)), rest))) , state})
             } else if !a_result(&e2) {
@@ -140,7 +143,7 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
                 Err(Cfg{k: Cons(Add(Box::new(e1), Box::new(e2)), rest), state})
             }
         },
-        Cfg {k: Cons(Le(box e1, box e2), rest), state}=> {
+        Cons(Le(box e1, box e2), rest)=> {
             if !a_result(&e1) {
                 Ok(Cfg{k: Cons(e1, Box::new(Cons(LeL(Box::new(e2)), rest))) , state})
             } else if !a_result(&e2) {
@@ -149,28 +152,28 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
                 Err(Cfg{k: Cons(Le(Box::new(e1), Box::new(e2)), rest), state})
             }
         },
-        Cfg {k: Cons(Not(box b), rest), state}=> {
+        Cons(Not(box b), rest)=> {
             if !b_result(&b) {
                 Ok(Cfg{k: Cons(b, Box::new(Cons(NotF, rest))) , state})
             } else {
                 Err(Cfg{k: Cons(Not(Box::new(b)), rest), state})
             }
         },
-        Cfg {k: Cons(And(box b1, box b2), rest), state}=> {
+        Cons(And(box b1, box b2), rest)=> {
             if !b_result(&b1) {
                 Ok(Cfg{k: Cons(b1, Box::new(Cons(AndL(Box::new(b2)), rest))) , state})
             } else {
                 Err(Cfg{k: Cons(And(Box::new(b1), Box::new(b2)), rest), state})
             }
         },
-        Cfg {k: Cons(Assign(i, box e), rest), state}=> {
+        Cons(Assign(i, box e), rest)=> {
             if !a_result(&e) {
                 Ok(Cfg{k: Cons(e, Box::new(Cons(AssignR(i), rest))) , state})
             } else {
                 Err(Cfg{k: Cons(Assign(i, Box::new(e)), rest), state})
             }
         },
-        Cfg {k: Cons(If(box b, s1, s2), rest), state}=> {
+        Cons(If(box b, s1, s2), rest)=> {
             if !b_result(&b) {
                 Ok(Cfg{k: Cons(b, Box::new(Cons(IfC(s1, s2), rest))) , state})
             } else {
@@ -180,11 +183,11 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
         // Cooling
         // https://stackoverflow.com/questions/28638757/use-of-collaterally-moved-value-error-on-a-recursive-enum#28639004 
         /*   
-        Cfg {k: Cons(ACon(e), box Cons(DivL(e2), rest)), state}=> {
+        Cons(ACon(e), box Cons(DivL(e2), rest))=> {
             Ok(Cfg{k: Cons(Div(Box::new(ACon(e)), e2), rest), state})
         },
         */
-        Cfg {k: Cons(ACon(e), box more), state}=> {
+        Cons(ACon(e), box more)=> {
             match more {
                 Cons(DivL(e2), rest)=> {
                     Ok(Cfg{k: Cons(Div(Box::new(ACon(e)), e2), rest), state})
@@ -210,7 +213,7 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
                 _ => Err(Cfg{k: Cons(ACon(e), Box::new(more)), state})
             }
         },
-        Cfg {k: Cons(BCon(e), box more), state}=> {
+        Cons(BCon(e), box more)=> {
             match more {
                 Cons(NotF, rest) => {
                     Ok(Cfg{k: Cons(Not(Box::new(BCon(e))), rest), state})
@@ -224,8 +227,8 @@ fn step(c: Cfg) -> Result<Cfg, Cfg> {
                 _ => Err(Cfg{k: Cons(BCon(e), Box::new(more)), state})
 
             }
-        }
-        _ => Err(Cfg{k: c.k, state: c.state})
+        },
+        _ => Err(Cfg{k, state})
     }
 }
 

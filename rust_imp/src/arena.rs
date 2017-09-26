@@ -275,6 +275,8 @@ pub fn run_pgm<'a>(size: i64) {
         allocator: &allocator
     };
 
+    let timer = SystemTime::now();
+
     loop {
         let r = step(c);
         match r {
@@ -284,7 +286,12 @@ pub fn run_pgm<'a>(size: i64) {
             },
             Err(c)=> {
                 println!("Done {:?} {:?}", c.k, c.state);
-               break;
+
+                let elapsed = timer.elapsed().unwrap();
+                let ms = elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1_000_000;
+                println!("arena (Before freeing memory): execution time  {}ms", ms);
+
+                break;
             }
         }
     }
