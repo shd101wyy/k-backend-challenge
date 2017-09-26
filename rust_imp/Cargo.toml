@@ -5,3 +5,5 @@ authors = ["Yiyi Wang <shd101wyy@sina.com>"]
 
 [dependencies]
 immutable-map = "0.1.2"
+typed-arena = "1.3.0"
+slab = "0.4"
