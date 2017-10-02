@@ -1,2 +1,6 @@
 rust_imp/Cargo.lock
 rust_imp/target
+
+ocaml_imp/imp 
+ocaml_imp/imp.cmi
+ocaml_imp/imp.cmo  
