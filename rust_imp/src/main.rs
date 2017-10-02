@@ -481,8 +481,8 @@ fn run(mut c:Cfg) {
 
 fn main() {
     let timer = SystemTime::now();
-    let c = start(sum_pgm(1000000));
-    // let c = start(sum_pgm(10_000_000));
+    // let c = start(sum_pgm(1000000));
+    let c = start(sum_pgm(10_000_000));
     // let c = start(sum_pgm(10_000_000));
     run(c);
 
