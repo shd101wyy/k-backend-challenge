@@ -4,3 +4,5 @@ rust_imp/target
 ocaml_imp/imp 
 ocaml_imp/imp.cmi
 ocaml_imp/imp.cmo  
+ocaml_imp/imp.cmx
+ocaml_imp/imp.o

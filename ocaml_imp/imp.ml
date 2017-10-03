@@ -28,12 +28,6 @@ module State = Map.Make(String) ;;
 type cfg = { k: kitem list; state: int State.t } ;;
 exception Stuck of cfg ;;
 
-(* let x = State.empty ;; *)
-(* let x = State.add "x" 12 x ;; *)
-(* print_int (State.find "y" x) ;; *)
-(* Printf.printf "%B\n" (State.mem "x" x) ;; *)
-(* let x = {k=NotF::[]; state=State.empty} ;; *)
-
 let aresult (a:kitem): bool =  
   match a with
   | ACon _ -> true
