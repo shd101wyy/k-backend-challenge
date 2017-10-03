@@ -3,6 +3,7 @@ I wrote the imp backend code in `rust` and `ocaml` without any optimizations.
 It's so hard to get my code compiled successfully in `rust`, so I give up optimizing it.  
 
 Times are measured in `ms`.  
+
 |   | sum $10^4$ | sum $10^5$ | sum $10^6$ | sum $10^7$ |
 |---|---|---|---|---|
 | RV K (-O3)  | 3217   | 3501   | 7179  | 43757  |
