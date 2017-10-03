@@ -2,18 +2,14 @@
 extern crate immutable_map;
 
 use std::time::{SystemTime};
-// use std::rc::Rc;
-// use std::collections::HashMap;
 
-mod opt;
+// mod opt; // I couldn't compile, so I give up it.  
 mod direct;
 
 
 fn main() {
     let timer = SystemTime::now();
-    let c = direct::start(direct::sum_pgm(1000000));
-    // let c = direct::start(direct::sum_pgm(10_000_000));
-    // let c = start(sum_pgm(10_000_000));
+    let c = direct::start(direct::sum_pgm(10_000_000)); // <= modify this line for different `n`
     direct::run(c);
 
     let elapsed = timer.elapsed().unwrap();
