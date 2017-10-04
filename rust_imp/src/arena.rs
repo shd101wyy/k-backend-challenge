@@ -2,8 +2,8 @@
 
 use immutable_map::TreeMap;
 use typed_arena::Arena;
+use std::time::{SystemTime};
 
-use std::rc::Rc;
 
 // ================================
 // ========  Unoptimized  =========
@@ -23,7 +23,7 @@ pub enum KItem<'a> {
     While(&'a KItem<'a>, &'a KItem<'a>),
     Seq(&'a KItem<'a>, &'a KItem<'a>),
     Skip,
-    Pgm(&'a List<&'a str>, &'a KItem<'a>),
+    Pgm(List<&'a str>, &'a KItem<'a>),
     DivL(&'a KItem<'a>),
     DivR(&'a KItem<'a>),
     AddL(&'a KItem<'a>),
@@ -67,8 +67,11 @@ fn b_result(a: &KItem)->bool {
 
 #[allow(dead_code)]
 fn step<'a>(c: Cfg<'a>) -> Result<Cfg<'a>, Cfg<'a>> {
-    match c {
-        Cfg {k: Cons(&AVar(i), rest), state, allocator}=> {
+    let k = c.k;
+    let state = c.state;
+    let allocator = c.allocator;
+    match k {
+        Cons(&AVar(i), rest)=> {
             if state.contains_key(&i) {
                 let x = allocator.alloc(ACon(*state.get(&i).unwrap()));
                 Ok(Cfg{k: Cons(x, rest), state: state, allocator})
@@ -77,7 +80,7 @@ fn step<'a>(c: Cfg<'a>) -> Result<Cfg<'a>, Cfg<'a>> {
                 Err(Cfg{k: Cons(x, rest), state, allocator})
             }
         },  
-        Cfg {k: Cons(&Div(&ACon(i), &ACon(j)), rest), state, allocator}=> {
+        Cons(&Div(&ACon(i), &ACon(j)), rest)=> {
             if j == 0 {
                 let x = allocator.alloc(ACon(i));
                 let y = allocator.alloc(ACon(j));
@@ -88,67 +91,60 @@ fn step<'a>(c: Cfg<'a>) -> Result<Cfg<'a>, Cfg<'a>> {
                 Ok(Cfg{k: Cons(x, rest), state, allocator})
             }
         },
-        Cfg {k: Cons(&Add(&ACon(i), &ACon(j)), rest), state, allocator}=> {
+        Cons(&Add(&ACon(i), &ACon(j)), rest)=> {
             let x = allocator.alloc(ACon(i + j));
             Ok(Cfg{k: Cons(x, rest), state, allocator})
         },
-        Cfg {k: Cons(&Le(&ACon(i), &ACon(j)), rest), state, allocator}=> {
+        Cons(&Le(&ACon(i), &ACon(j)), rest)=> {
             let x = allocator.alloc(BCon(i <= j));
             Ok(Cfg{k: Cons(x, rest), state, allocator})
         },
-        Cfg {k: Cons(&Not(&BCon(b)), rest), state, allocator}=> {
+        Cons(&Not(&BCon(b)), rest)=> {
             let x = allocator.alloc(BCon(!b));
             Ok(Cfg{k: Cons(x, rest), state, allocator})
         },
-        Cfg {k: Cons(&And(&BCon(true), b), rest), state, allocator}=> {
+        Cons(&And(&BCon(true), b), rest)=> {
             Ok(Cfg{k: Cons(b, rest), state, allocator})
         },
-        Cfg {k: Cons(&And(&BCon(false), _), rest), state, allocator}=> {
+        Cons(&And(&BCon(false), _), rest)=> {
             let x = allocator.alloc(BCon(false));
             Ok(Cfg{k: Cons(x, rest), state, allocator})
         },
-        Cfg {k: Cons(&Assign(i, &ACon(j)), rest), state, allocator}=> {
+        Cons(&Assign(i, &ACon(j)), rest)=> {
             Ok(Cfg{k: *rest, state: state.insert(i, j), allocator})
         },
-        Cfg {k: Cons(&Seq(s1, s2), rest), state, allocator}=> {
+        Cons(&Seq(s1, s2), rest)=> {
             Ok(Cfg{k: Cons(s1, Box::new(Cons(s2, rest))), state, allocator})
         },
-        Cfg {k: Cons(&Skip, rest), state, allocator}=> {
+        Cons(&Skip, rest)=> {
             Ok(Cfg{k: *rest, state, allocator})
         },
-        Cfg {k: Cons(&If(&BCon(true), s, _), rest), state, allocator}=> {
+        Cons(&If(&BCon(true), s, _), rest)=> {
             Ok(Cfg{k: Cons(s, rest), state, allocator})
         },
-        Cfg {k: Cons(&If(&BCon(false), _, s), rest), state, allocator}=> {
+        Cons(&If(&BCon(false), _, s), rest)=> {
             Ok(Cfg{k: Cons(s, rest), state, allocator})
         },
-        Cfg {k: Cons(&While(b, s), rest), state, allocator}=> {
+        Cons(&While(b, s), rest)=> {
             let while_ = allocator.alloc(While(b, s));
             let skip_ = allocator.alloc(Skip);
             let seq_ = allocator.alloc(Seq(s, while_));
             let if_ = allocator.alloc(If(b, seq_, skip_));
             Ok(Cfg{k: Cons(if_, rest), state, allocator})            
         },
-        /*
-        Cfg {k: Cons(&Pgm(args, s), box Nil), state, allocator}=> {
-            // let pgm = allocator.alloc(Pgm(&xs, s));
-            // Ok(Cfg{k: Cons(pgm, Box::new(Nil)), state: state.insert(i, 0), allocator})
-            match args {
-                &Cons(i, box xs)=> {
-                    let pgm = allocator.alloc(Pgm(&List::Nil, s));
+        Cons(&Pgm(ref args, s), box Nil)=> {
+            let args_ = args.clone();
+            match args_ {
+                Cons(i, box xs)=> {
+                    let pgm = allocator.alloc(Pgm(xs, s));
                     Ok(Cfg{k: Cons(pgm, Box::new(Nil)), state: state.insert(i, 0), allocator})
                 },
                 _ => Ok(Cfg{k: Cons(s, Box::new(Nil)), state, allocator})
             }
         },
-
-        Cfg {k: Cons(&Pgm(Nil, s), box Nil), state, allocator}=> {
-            Ok(Cfg{k: Cons(s, Box::new(Nil)), state, allocator})
-        },
-        */
         // Heading/cooling rules 
         // Heating 
-        Cfg {k: Cons(&Div(e1, e2), rest), state, allocator}=> {
+        Cons(&Div(e1, e2), rest)=> {
             if !a_result(e1) {
                 Ok(Cfg{k: Cons(e1, Box::new(Cons(allocator.alloc(DivL(e2)), rest))) , state, allocator})
             } else if !a_result(e2) {
@@ -157,51 +153,50 @@ fn step<'a>(c: Cfg<'a>) -> Result<Cfg<'a>, Cfg<'a>> {
                 Err(Cfg{k: Cons(allocator.alloc(Div(e1, e2)), rest), state, allocator})
             }
         },
-        Cfg {k: Cons(Add(&e1, &e2), rest), state, allocator}=> {
+        Cons(&Add(e1, e2), rest)=> {
             if !a_result(&e1) {
-                Ok(Cfg{k: Cons(e1, Box::new(Cons(AddL(&e2), rest))) , state, allocator})
+                Ok(Cfg{k: Cons(e1, Box::new(Cons(allocator.alloc(AddL(e2)), rest))) , state, allocator})
             } else if !a_result(&e2) {
-                Ok(Cfg{k: Cons(e2, Box::new(Cons(AddR(&e1), rest))) , state, allocator})
+                Ok(Cfg{k: Cons(e2, Box::new(Cons(allocator.alloc(AddR(e1)), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(Add(&e1, &e2), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(Add(e1, e2)), rest), state, allocator})
             }
         },
-        /*
-        Cfg {k: Cons(Le(&e1, &e2), rest), state, allocator}=> {
-            if !a_result(&e1) {
-                Ok(Cfg{k: Cons(e1, Box::new(Cons(LeL(&e2), rest))) , state, allocator})
+        Cons(&Le(e1, e2), rest)=> {
+            if !a_result(e1) {
+                Ok(Cfg{k: Cons(e1, Box::new(Cons(allocator.alloc(LeL(e2)), rest))) , state, allocator})
             } else if !a_result(&e2) {
-                Ok(Cfg{k: Cons(e2, Box::new(Cons(LeR(&e1), rest))) , state, allocator})
+                Ok(Cfg{k: Cons(e2, Box::new(Cons(allocator.alloc(LeR(e1)), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(Le(&e1, &e2), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(Le(e1, e2)), rest), state, allocator})
             }
         },
-        Cfg {k: Cons(Not(&b), rest), state, allocator}=> {
-            if !b_result(&b) {
-                Ok(Cfg{k: Cons(b, Box::new(Cons(NotF, rest))) , state, allocator})
+        Cons(&Not(b), rest)=> {
+            if !b_result(b) {
+                Ok(Cfg{k: Cons(b, Box::new(Cons(allocator.alloc(NotF), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(Not(&b), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(Not(b)), rest), state, allocator})
             }
         },
-        Cfg {k: Cons(And(&b1, &b2), rest), state, allocator}=> {
+        Cons(&And(b1, b2), rest)=> {
             if !b_result(&b1) {
-                Ok(Cfg{k: Cons(b1, Box::new(Cons(AndL(&b2), rest))) , state, allocator})
+                Ok(Cfg{k: Cons(b1, Box::new(Cons(allocator.alloc(AndL(b2)), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(And(&b1, &b2), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(And(b1, b2)), rest), state, allocator})
             }
         },
-        Cfg {k: Cons(Assign(i, &e), rest), state, allocator}=> {
-            if !a_result(&e) {
-                Ok(Cfg{k: Cons(e, Box::new(Cons(AssignR(i), rest))) , state, allocator})
+        Cons(&Assign(i, e), rest)=> {
+            if !a_result(e) {
+                Ok(Cfg{k: Cons(e, Box::new(Cons(allocator.alloc(AssignR(i)), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(Assign(i, &e), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(Assign(i, e)), rest), state, allocator})
             }
         },
-        Cfg {k: Cons(If(&b, s1, s2), rest), state, allocator}=> {
-            if !b_result(&b) {
-                Ok(Cfg{k: Cons(b, Box::new(Cons(IfC(s1, s2), rest))) , state, allocator})
+        Cons(&If(b, s1, s2), rest)=> {
+            if !b_result(b) {
+                Ok(Cfg{k: Cons(b, Box::new(Cons(allocator.alloc(IfC(s1, s2)), rest))) , state, allocator})
             } else {
-                Err(Cfg{k: Cons(If(&b, s1, s2), rest), state, allocator})
+                Err(Cfg{k: Cons(allocator.alloc(If(b, s1, s2)), rest), state, allocator})
             }
         },
         // Cooling
@@ -211,251 +206,75 @@ fn step<'a>(c: Cfg<'a>) -> Result<Cfg<'a>, Cfg<'a>> {
         //    Ok(Cfg{k: Cons(Div(ACon(e), e2), rest), state, allocator})
         //},
         // 
-        Cfg {k: Cons(ACon(e), box more), state, allocator}=> {
+        Cons(&ACon(e), box more)=> {
             match more {
-                Cons(DivL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Div(&ACon(e), e2), rest), state, allocator})
+                Cons(&DivL(e2), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Div(allocator.alloc(ACon(e)), e2)), rest), state, allocator})
                 },
-                Cons(DivR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Div(e1, &ACon(e)), rest), state, allocator})
+                Cons(&DivR(e1), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Div(e1, allocator.alloc(ACon(e)))), rest), state, allocator})
                 },
-                Cons(AddL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Add(&ACon(e), e2), rest), state, allocator})
+                Cons(&AddL(e2), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Add(allocator.alloc(ACon(e)), e2)), rest), state, allocator})
                 },
-                Cons(AddR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Add(e1, &ACon(e)), rest), state, allocator})
+                Cons(&AddR(e1), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Add(e1, allocator.alloc(ACon(e)))), rest), state, allocator})
                 },
-                Cons(LeL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Le(&ACon(e), e2), rest), state, allocator})
+                Cons(&LeL(e2), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Le(allocator.alloc(ACon(e)), e2)), rest), state, allocator})
                 },
-                Cons(LeR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Le(e1, &ACon(e)), rest), state, allocator})
+                Cons(&LeR(e1), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Le(e1, allocator.alloc(ACon(e)))), rest), state, allocator})
                 },
-                Cons(AssignR(i), rest)=> {
-                    Ok(Cfg{k: Cons(Assign(i, &ACon(e)), rest), state, allocator})
+                Cons(&AssignR(i), rest)=> {
+                    Ok(Cfg{k: Cons(allocator.alloc(Assign(i, allocator.alloc(ACon(e)))), rest), state, allocator})
                 },
-                _ => Err(Cfg{k: Cons(ACon(e), Box::new(more)), state, allocator})
+                _ => Err(Cfg{k: Cons(allocator.alloc(ACon(e)), Box::new(more)), state, allocator})
             }
         },
-        Cfg {k: Cons(BCon(e), box more), state, allocator}=> {
+        Cons(&BCon(e), box more)=> {
             match more {
-                Cons(NotF, rest) => {
-                    Ok(Cfg{k: Cons(Not(&BCon(e)), rest), state, allocator})
+                Cons(&NotF, rest) => {
+                    Ok(Cfg{k: Cons(allocator.alloc(Not(allocator.alloc(BCon(e)))), rest), state, allocator})
                 },
-                Cons(AndL(e2), rest) => {
-                    Ok(Cfg{k: Cons(And(&BCon(e), e2), rest), state, allocator})
+                Cons(&AndL(e2), rest) => {
+                    Ok(Cfg{k: Cons(allocator.alloc(And(allocator.alloc(BCon(e)), e2)), rest), state, allocator})
                 },
-                Cons(IfC(s1, s2), rest) => {
-                    Ok(Cfg{k: Cons(If(&BCon(e), s1, s2), rest), state, allocator})
+                Cons(&IfC(s1, s2), rest) => {
+                    Ok(Cfg{k: Cons(allocator.alloc(If(allocator.alloc(BCon(e)), s1, s2)), rest), state, allocator})
                 },
-                _ => Err(Cfg{k: Cons(BCon(e), Box::new(more)), state, allocator})
+                _ => Err(Cfg{k: Cons(allocator.alloc(BCon(e)), Box::new(more)), state, allocator})
 
             }
         },
-        */
-        _ => Err(Cfg{k: c.k, state: c.state, allocator: c.allocator})
+        _ => Err(Cfg{k, state, allocator})
     }
-    /*
-    match c {
-        Cfg {k: Cons(AVar(i), rest), state, allocator}=> {
-            if state.contains_key(&i) {
-                Ok(Cfg{k: Cons(ACon(*state.get(&i).unwrap()), rest), state: state, allocator})
-            } else {
-                Err(Cfg{k: Cons(ACon(*state.get(&i).unwrap()), rest), state, allocator})
-            }
-        },  
-        Cfg {k: Cons(Div(&ACon(i), &ACon(j)), rest), state, allocator}=> {
-            if j == 0 {
-                let x = allocator.alloc(ACon(i));
-                let y = allocator.alloc(ACon(j));
-                Err(Cfg{k: Cons(Div(x, y), rest), state, allocator})
-            } else {
-                Ok(Cfg{k: Cons(ACon(i / j), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(Add(&ACon(i), &ACon(j)), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(ACon(i + j), rest), state, allocator})
-        },
-        Cfg {k: Cons(Le(&ACon(i), &ACon(j)), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(BCon(i <= j), rest), state, allocator})
-        },
-        Cfg {k: Cons(Not(&BCon(b)), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(BCon(!b), rest), state, allocator})
-        },
-        Cfg {k: Cons(And(&BCon(true), &b), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(b, rest), state, allocator})
-        },
-        Cfg {k: Cons(And(&BCon(false), _), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(BCon(false), rest), state, allocator})
-        },
-        Cfg {k: Cons(Assign(i, &ACon(j)), rest), state, allocator}=> {
-            Ok(Cfg{k: *rest, state: state.insert(i, j), allocator})
-        },
-        Cfg {k: Cons(Seq(&s1, &s2), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(s1, Box::new(Cons(s2, rest))), state, allocator})
-        },
-        Cfg {k: Cons(Skip, rest), state, allocator}=> {
-            Ok(Cfg{k: *rest, state, allocator})
-        },
-        Cfg {k: Cons(If(&BCon(true), &s, _), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(s, rest), state, allocator})
-        },
-        Cfg {k: Cons(If(&BCon(false), _, &s), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(s, rest), state, allocator})
-        },
-        Cfg {k: Cons(While(b, s), rest), state, allocator}=> {
-            Ok(Cfg{k: Cons(If(b, &Seq(s, &While(&b, &s)), &Skip), rest), state, allocator})            
-        },
-        Cfg {k: Cons(Pgm(Cons(i, xs), s), box Nil), state, allocator}=> {
-            Ok(Cfg{k: Cons(Pgm(*xs, s), Box::new(Nil)), state: state.insert(i, 0), allocator})
-        },
-        Cfg {k: Cons(Pgm(Nil, &s), box Nil), state, allocator}=> {
-            Ok(Cfg{k: Cons(s, Box::new(Nil)), state, allocator})
-        },
-        // Heading/cooling rules 
-        // Heating 
-        Cfg {k: Cons(Div(&e1, &e2), rest), state, allocator}=> {
-            if !a_result(&e1) {
-                Ok(Cfg{k: Cons(e1, Box::new(Cons(DivL(&e2), rest))) , state, allocator})
-            } else if !a_result(&e2) {
-                Ok(Cfg{k: Cons(e2, Box::new(Cons(DivR(&e1), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(Div(&e1, &e2), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(Add(&e1, &e2), rest), state, allocator}=> {
-            if !a_result(&e1) {
-                Ok(Cfg{k: Cons(e1, Box::new(Cons(AddL(&e2), rest))) , state, allocator})
-            } else if !a_result(&e2) {
-                Ok(Cfg{k: Cons(e2, Box::new(Cons(AddR(&e1), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(Add(&e1, &e2), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(Le(&e1, &e2), rest), state, allocator}=> {
-            if !a_result(&e1) {
-                Ok(Cfg{k: Cons(e1, Box::new(Cons(LeL(&e2), rest))) , state, allocator})
-            } else if !a_result(&e2) {
-                Ok(Cfg{k: Cons(e2, Box::new(Cons(LeR(&e1), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(Le(&e1, &e2), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(Not(&b), rest), state, allocator}=> {
-            if !b_result(&b) {
-                Ok(Cfg{k: Cons(b, Box::new(Cons(NotF, rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(Not(&b), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(And(&b1, &b2), rest), state, allocator}=> {
-            if !b_result(&b1) {
-                Ok(Cfg{k: Cons(b1, Box::new(Cons(AndL(&b2), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(And(&b1, &b2), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(Assign(i, &e), rest), state, allocator}=> {
-            if !a_result(&e) {
-                Ok(Cfg{k: Cons(e, Box::new(Cons(AssignR(i), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(Assign(i, &e), rest), state, allocator})
-            }
-        },
-        Cfg {k: Cons(If(&b, s1, s2), rest), state, allocator}=> {
-            if !b_result(&b) {
-                Ok(Cfg{k: Cons(b, Box::new(Cons(IfC(s1, s2), rest))) , state, allocator})
-            } else {
-                Err(Cfg{k: Cons(If(&b, s1, s2), rest), state, allocator})
-            }
-        },
-        // Cooling
-        // https://stackoverflow.com/questions/28638757/use-of-collaterally-moved-value-error-on-a-recursive-enum#28639004 
-        /*   
-        Cfg {k: Cons(ACon(e), &Cons(DivL(e2), rest)), state, allocator}=> {
-            Ok(Cfg{k: Cons(Div(ACon(e), e2), rest), state, allocator})
-        },
-        */
-        Cfg {k: Cons(ACon(e), box more), state, allocator}=> {
-            match more {
-                Cons(DivL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Div(&ACon(e), e2), rest), state, allocator})
-                },
-                Cons(DivR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Div(e1, &ACon(e)), rest), state, allocator})
-                },
-                Cons(AddL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Add(&ACon(e), e2), rest), state, allocator})
-                },
-                Cons(AddR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Add(e1, &ACon(e)), rest), state, allocator})
-                },
-                Cons(LeL(e2), rest)=> {
-                    Ok(Cfg{k: Cons(Le(&ACon(e), e2), rest), state, allocator})
-                },
-                Cons(LeR(e1), rest)=> {
-                    Ok(Cfg{k: Cons(Le(e1, &ACon(e)), rest), state, allocator})
-                },
-                Cons(AssignR(i), rest)=> {
-                    Ok(Cfg{k: Cons(Assign(i, &ACon(e)), rest), state, allocator})
-                },
-                _ => Err(Cfg{k: Cons(ACon(e), Box::new(more)), state, allocator})
-            }
-        },
-        Cfg {k: Cons(BCon(e), box more), state, allocator}=> {
-            match more {
-                Cons(NotF, rest) => {
-                    Ok(Cfg{k: Cons(Not(&BCon(e)), rest), state, allocator})
-                },
-                Cons(AndL(e2), rest) => {
-                    Ok(Cfg{k: Cons(And(&BCon(e), e2), rest), state, allocator})
-                },
-                Cons(IfC(s1, s2), rest) => {
-                    Ok(Cfg{k: Cons(If(&BCon(e), s1, s2), rest), state, allocator})
-                },
-                _ => Err(Cfg{k: Cons(BCon(e), Box::new(more)), state, allocator})
-
-            }
-        }
-        _ => Err(Cfg{k: c.k, state: c.state, allocator: c.allocator})
-    }
-    */
 }
 
-pub fn sum_pgm<'a>(size: i64)-> KItem<'a> {
+#[allow(dead_code)]
+pub fn run_pgm<'a>(size: i64) {
     let n = "n";
     let sum = "sum";
     let args = Cons(n, Box::new(Cons(sum, Box::new(Nil))));
     
     let allocator: Arena<KItem> = Arena::new();
-    let a = allocator.alloc(ACon(1));
-    let b = Box::new(ACon(1));
 
-    /*
-    Pgm(args, 
-        Box::new(Seq(
-            Box::new(Assign(n, Box::new(ACon(size)))),
-        Box::new(Seq(
-            Box::new(Assign(sum, Box::new(ACon(0)))),
-            Box::new(While(Box::new(Not(Box::new(Le(Box::new(AVar(n)), Box::new(ACon(0)))))),
-                        Box::new(Seq(
-                            Box::new(Assign(sum, Box::new(Add(Box::new(AVar(sum)), Box::new(AVar(n)))))),
-                            Box::new(Assign(n, Box::new(Add(Box::new(AVar(n)), Box::new(ACon(-1))))))
-                        )))))))))
-                        */
-    ACon(1)
-}
+    let pgm = allocator.alloc(Pgm(args, 
+        allocator.alloc(Seq(
+            allocator.alloc(Assign(n, allocator.alloc(ACon(size)))),
+        allocator.alloc(Seq(
+            allocator.alloc(Assign(sum, allocator.alloc(ACon(0)))),
+            allocator.alloc(While(allocator.alloc(Not(allocator.alloc(Le(allocator.alloc(AVar(n)), allocator.alloc(ACon(0)))))),
+                        allocator.alloc(Seq(
+                            allocator.alloc(Assign(sum, allocator.alloc(Add(allocator.alloc(AVar(sum)), allocator.alloc(AVar(n)))))),
+                            allocator.alloc(Assign(n, allocator.alloc(Add(allocator.alloc(AVar(n)), allocator.alloc(ACon(-1))))))
+                        ))))))))));
+    let mut c = Cfg {
+        k: Cons(pgm, Box::new(Nil)),
+        state: TreeMap::new(),
+        allocator: &allocator
+    };
 
-/*
-pub fn start(p: KItem)->Cfg {
-    Cfg {
-        k: Cons(p, Box::new(Nil)),
-        state: TreeMap::new()
-    }
-}
-*/
-
-pub fn run(mut c:Cfg) {
     loop {
         let r = step(c);
         match r {
@@ -464,8 +283,8 @@ pub fn run(mut c:Cfg) {
                 continue;
             },
             Err(c)=> {
-                // println!("Done {:?}", c);
-                break;
+                println!("Done {:?} {:?}", c.k, c.state);
+               break;
             }
         }
     }
