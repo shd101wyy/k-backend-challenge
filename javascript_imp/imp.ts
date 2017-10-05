@@ -1,6 +1,7 @@
 // Implementation of imp in JavaScript
 // It's meaningless, but I just want to see how fast it can run.  
 
+(function() {
 const Nil = function(){}
 
 type St = {[key:string]:number}
@@ -9,7 +10,7 @@ type AHole = (n:number)=>Comp
 type BHole = (b:boolean)=>Comp
 type AComp = (h:AHole)=>Comp
 type BComp = (h:BHole)=>Comp
-const stuck = {}
+const stuck = ()=> 'Stuck!'
 
 /** Correspondence to redexes */
 const compId = (x:string):AComp => 
@@ -40,7 +41,7 @@ const redAnd = (b:boolean, bexp: BComp):BComp =>
   }
 
 const compSkip = (st: St):St => st
-const redAsgn = (x:string, i:number):Comp =>(st:St)=> {
+const redAsgn = (x:string, i:number):Comp => (st:St)=> {
   st[x] = i
   return st
 }
@@ -98,6 +99,7 @@ const run = (p:Comp):St => {
   try {
     p(state)
   } catch(error) {
+    console.log(error)
     return state
   }
 }
@@ -107,10 +109,13 @@ const test = (size:number) => run(sumPgm(size))
 
 
 const main = ()=> {
-  const n = 10000000
+  const n = 10000
   const startTime = Date.now()
   const state = test(n)
   const endTime = Date.now()  
   console.log(state)
   console.log(`JavaScript IMP interpreter takes ${endTime - startTime}ms.`)
 }
+
+main()
+})()
