@@ -2,6 +2,7 @@
 // It's meaningless, but I just want to see how fast it can run.  
 
 (function() {
+const SIZE = 10000000
 
 function direct() {
   interface KItem {}
@@ -224,9 +225,8 @@ function direct() {
   const step = (cfg:Cfg)=> {
     const {k, state} = cfg
     if (!k.length) throw stuck(cfg)
+    
     let task = k.pop()
-
-    console.log(task)
 
     if (task instanceof AVar) {
       const v = task.v
@@ -276,7 +276,7 @@ function direct() {
     } else if (task instanceof Not) {
       const b = task.b
       if (b instanceof BCon) {
-        k.push(new BCon(!b))
+        k.push(new BCon(!b.b))
       } else {
         k.push(new NotF())
         k.push(b)
@@ -336,7 +336,7 @@ function direct() {
         k.push(task)
       }
     } else if (task instanceof ACon) {
-      const n = task.n
+      const n = task
       task = k.pop()
       if (task instanceof DivL) {
         k.push(new Div(n, task.v))
@@ -356,7 +356,7 @@ function direct() {
         throw stuck(cfg)
       }
     } else if (task instanceof BCon) {
-      const b = task.b
+      const b = task
       task = k.pop()
       if (task instanceof NotF) {
         k.push(new Not(b))
@@ -367,6 +367,8 @@ function direct() {
       } else {
         throw stuck(cfg)
       }
+    } else {
+      throw stuck(cfg)
     }
   }
 
@@ -390,11 +392,9 @@ function direct() {
   
   
   const main = ()=> {
-    const n = 10000
     const startTime = Date.now()
-    const state = test(n)
+    test(SIZE)
     const endTime = Date.now()  
-    console.log(state)
     console.log(`(direct) JavaScript IMP interpreter takes ${endTime - startTime}ms.`)
   }
   
@@ -511,9 +511,8 @@ function opt() {
   
   
   const main = ()=> {
-    const n = 10000
     const startTime = Date.now()
-    const state = test(n)
+    const state = test(SIZE)
     const endTime = Date.now()  
     console.log(state)
     console.log(`(optimized) JavaScript IMP interpreter takes ${endTime - startTime}ms.`)

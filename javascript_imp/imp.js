@@ -11,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 (function () {
+    var SIZE = 10000000;
     function direct() {
         var ACon = (function () {
             function ACon(n) {
@@ -199,7 +200,6 @@ var __extends = (this && this.__extends) || (function () {
             if (!k.length)
                 throw stuck(cfg);
             var task = k.pop();
-            console.log(task);
             if (task instanceof AVar) {
                 var v = task.v;
                 if (v in state) {
@@ -257,7 +257,7 @@ var __extends = (this && this.__extends) || (function () {
             else if (task instanceof Not) {
                 var b = task.b;
                 if (b instanceof BCon) {
-                    k.push(new BCon(!b));
+                    k.push(new BCon(!b.b));
                 }
                 else {
                     k.push(new NotF());
@@ -326,7 +326,7 @@ var __extends = (this && this.__extends) || (function () {
                 }
             }
             else if (task instanceof ACon) {
-                var n = task.n;
+                var n = task;
                 task = k.pop();
                 if (task instanceof DivL) {
                     k.push(new Div(n, task.v));
@@ -354,7 +354,7 @@ var __extends = (this && this.__extends) || (function () {
                 }
             }
             else if (task instanceof BCon) {
-                var b = task.b;
+                var b = task;
                 task = k.pop();
                 if (task instanceof NotF) {
                     k.push(new Not(b));
@@ -368,6 +368,9 @@ var __extends = (this && this.__extends) || (function () {
                 else {
                     throw stuck(cfg);
                 }
+            }
+            else {
+                throw stuck(cfg);
             }
         };
         var run = function (p) {
@@ -386,11 +389,9 @@ var __extends = (this && this.__extends) || (function () {
         };
         var test = function (size) { return run(sumPgm(size)); };
         var main = function () {
-            var n = 10000;
             var startTime = Date.now();
-            var state = test(n);
+            test(SIZE);
             var endTime = Date.now();
-            console.log(state);
             console.log("(direct) JavaScript IMP interpreter takes " + (endTime - startTime) + "ms.");
         };
         main();
@@ -485,9 +486,8 @@ var __extends = (this && this.__extends) || (function () {
         };
         var test = function (size) { return run(sumPgm(size)); };
         var main = function () {
-            var n = 10000;
             var startTime = Date.now();
-            var state = test(n);
+            var state = test(SIZE);
             var endTime = Date.now();
             console.log(state);
             console.log("(optimized) JavaScript IMP interpreter takes " + (endTime - startTime) + "ms.");
