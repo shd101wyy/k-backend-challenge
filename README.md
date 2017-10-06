@@ -11,6 +11,7 @@ Times are measured in `ms`.
 | Rust (direct) | 16 | 207 | 1932 | 19503 |
 | Rust (vector) | 15 | 194 | 1958 | 19695 |
 | Rust (arena) | 16 | 198 | 1905 | 19949 |
+| JavaScript (node.js) | 59 | 333 | 3061 | 29329 |
 
 OCaml is fast!
 
@@ -23,3 +24,14 @@ Then run the following commands:
 cd rust_imp
 cargo run --release
 ```
+
+---
+
+To run JavaScript code:  
+
+```bash
+cd javascript_imp
+node imp.js
+```
+
+`imp.js` is the JavaScript code compiled from `imp.ts`.   
