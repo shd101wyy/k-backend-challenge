@@ -5,7 +5,7 @@ extern crate typed_arena;
 
 use std::time::{SystemTime};
 
-// mod opt; // I couldn't compile, so I give up it.  
+mod opt; // I couldn't compile, so I give up it.  
 mod direct;
 mod vec;
 mod arena;
@@ -15,6 +15,8 @@ mod arena;
 fn main() {
     let n = 10_000_000;
     // let n = 10000000;
+
+    
     // ===== direct ========================
     let timer = SystemTime::now();
     let c = direct::start(direct::sum_pgm(n)); // <= modify this line for different `n`
@@ -24,6 +26,17 @@ fn main() {
     let ms = elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1_000_000;
 
     println!("direct: execution time  {}ms", ms);
+
+    // ===== optimized ========================
+
+    let timer = SystemTime::now();
+    let c = opt::start(opt::sum_pgm(n)); // <= modify this line for different `n`
+    opt::run(c);
+
+    let elapsed = timer.elapsed().unwrap();
+    let ms = elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1_000_000;
+
+    println!("optimized: execution time  {}ms", ms);
 
     // ===== vec ========================
     let timer = SystemTime::now();
