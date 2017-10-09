@@ -9,6 +9,7 @@ Times are measured in `ms`.
 | RV krun (-O3)  | 3217   | 3501   | 7179  | 43757  |
 | OCaml | 0 | 24 | 280 | 2872 |
 | Rust (direct) | 16 | 207 | 1932 | 19503 |
+| Rust (optimized) | 7 | 98 | 899 | 7776 |
 | Rust (vector) | 15 | 194 | 1958 | 19695 |
 | Rust (arena) | 16 | 198 | 1905 | 19949 |
 | JavaScript (node.js) | 59 | 333 | 3061 | 29329 |
