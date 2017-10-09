@@ -1,6 +1,4 @@
-I wrote the imp backend code in `rust` and `ocaml` without any optimizations.  
-
-It's so hard to get my code compiled successfully in `rust`, so I give up optimizing it.  
+# IMP language backend test  
 
 Times are measured in `ms`.  
 
