@@ -11,6 +11,7 @@ Times are measured in `ms`.
 | Rust (vector) | 15 | 194 | 1958 | 19695 |
 | Rust (arena) | 16 | 198 | 1905 | 19949 |
 | JavaScript (node.js) | 59 | 333 | 3061 | 29329 |
+| Go | 15 | 147 | 1214 | 12157 |
 
 OCaml is fast!
 
@@ -34,3 +35,14 @@ node imp.js
 ```
 
 `imp.js` is the JavaScript code compiled from `imp.ts`.   
+
+--- 
+
+To run Go code:
+
+```bash
+cd go_imp
+go build imp.go
+./imp
+```
+
