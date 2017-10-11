@@ -25,12 +25,6 @@ type add struct {
 	y kitem
 }
 
-/*
-func (v add) String() string {
-	return fmt.Sprintln("add{", v.x, ",", v.y, "}")
-}
-*/
-
 type bcon struct {
 	b bool
 }
@@ -71,12 +65,6 @@ type seq struct {
 }
 
 type skip struct{}
-
-/*
-func (v skip) String() string {
-	return "skip"
-}
-*/
 
 type pgm struct {
 	vars []string
@@ -316,7 +304,7 @@ func test(size int64) {
 	c := run(sumPgm(size))
 	elapsed := time.Since(start)
 	fmt.Println(c)
-	fmt.Println("Execution time: ", elapsed, " ms")
+	fmt.Println("Execution time: ", elapsed.Seconds()*1000, " ms")
 }
 
 func main() {
