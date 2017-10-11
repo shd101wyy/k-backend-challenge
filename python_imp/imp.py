@@ -273,7 +273,7 @@ def run(p):
             return cfg
 
 def main():
-    n = 10000 
+    n = 10000000 
     start_time = current_milli_time()
     cfg = test(n)
     print(cfg.state)

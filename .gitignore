@@ -6,3 +6,5 @@ ocaml_imp/imp.cmi
 ocaml_imp/imp.cmo  
 ocaml_imp/imp.cmx
 ocaml_imp/imp.o
+
+go_imp/imp

@@ -12,6 +12,8 @@ Times are measured in `ms`.
 | Rust (arena) | 16 | 198 | 1905 | 19949 |
 | JavaScript (node.js) | 59 | 333 | 3061 | 29329 |
 | Go | 15 | 147 | 1214 | 12157 |
+| Python (cpython) | 606 | 6095 | 61657  | _ |
+| Python (pypy) | 284 | 345 | 1003 | 7520 |
 
 OCaml is fast!
 
