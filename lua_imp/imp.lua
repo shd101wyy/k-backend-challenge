@@ -289,7 +289,7 @@ end
 
 
 function main() 
-    local n = 1000000
+    local n = 10000000
     local cfg = test(n)
     print("Done execution")
     print('n = ' .. cfg.state['n'])
